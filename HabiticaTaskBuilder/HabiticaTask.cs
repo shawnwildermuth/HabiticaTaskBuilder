@@ -13,5 +13,7 @@ namespace HabiticaTaskBuilder
     public string[] Tags { get; set; }
     public DateTime Date { get; set; }
     public string Priority { get; set; }
+    public string[] Subtasks { get; set; }
   }
+
 }

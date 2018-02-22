@@ -67,7 +67,17 @@ namespace HabiticaTaskBuilder
         var response = await _client.PostAsync("https://habitica.com/api/v3/tasks/user", content);
         if (response.IsSuccessStatusCode)
         {
-          Console.WriteLine("Created Task");
+          Console.WriteLine($"Created Task: {task.Text}");
+          if (task.Subtasks != null && task.Subtasks.Count() > 0)
+          {
+            var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+            var taskid = result["data"]["id"].ToString();
+
+            foreach (var subtask in task.Subtasks)
+            {
+              await CreateSubTask(subtask, taskid);
+            }
+          }
         }
         else
         {
@@ -75,6 +85,13 @@ namespace HabiticaTaskBuilder
         }
       }
 
+    }
+
+    private async Task CreateSubTask(string subtask, string taskid)
+    {
+      var url = $"https://habitica.com/api/v3/tasks/{taskid}/checklist";
+      await  _client.PostAsync(url, new StringContent(JsonConvert.SerializeObject(new { text = subtask }), Encoding.UTF8, "application/json"));
+      Console.WriteLine($"  Subtask Created: {subtask}");
     }
 
     private async Task<Dictionary<string, string>> GetCreateTags(List<string> list)
