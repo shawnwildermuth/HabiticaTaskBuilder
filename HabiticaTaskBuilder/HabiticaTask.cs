@@ -8,6 +8,8 @@ namespace HabiticaTaskBuilder
     {
     }
 
+    public string Id { get; set; }
+    public int Iterations { get; set; } = 1;
     public string Text { get; set; }
     public string Type { get; set; }
     public string[] Tags { get; set; }

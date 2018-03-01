@@ -1,5 +1,6 @@
 [
   {
+    "iterations":  2,
     "text": "Test Exercise",
     "type": "todo",
     "tags": [ "Exercise" ],
@@ -10,12 +11,5 @@
       "Two",
       "Three"
     ]
-  },
-  {
-    "text": "Test Exercise 2",
-    "type": "todo",
-    "tags": [ "Exercise" ],
-    "date": "2018-02-28",
-    "priority": "Hard"
   }
 ]

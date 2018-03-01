@@ -5,7 +5,7 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <StartupObject>HabiticaTaskBuilder.Program</StartupObject>
     <ApplicationIcon />
-    <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+    <!--<RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>-->
   </PropertyGroup>
 
   <ItemGroup>

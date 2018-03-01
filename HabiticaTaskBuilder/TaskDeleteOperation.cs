@@ -12,16 +12,16 @@ using Newtonsoft.Json.Serialization;
 
 namespace HabiticaTaskBuilder
 {
-  internal class TaskBuilderOperation
+  internal class TaskDeleteOperation
   {
-    private readonly string _source;
+    private readonly string _tag;
     private readonly string _apiuser;
     private readonly string _apikey;
     private readonly HttpClient _client;
 
-    public TaskBuilderOperation(string source, string apiuser, string apikey)
+    public TaskDeleteOperation(string tag, string apiuser, string apikey)
     {
-      this._source = source;
+      this._tag = tag;
       _apiuser = apiuser;
       this._apikey = apikey;
 
@@ -32,62 +32,36 @@ namespace HabiticaTaskBuilder
 
     public async Task RunAsync()
     {
-      var json = await File.ReadAllTextAsync(_source);
-      var tasks = JsonConvert.DeserializeObject<IEnumerable<HabiticaTask>>(json);
+      //https://habitica.com/api/v3/tasks/:taskId
+      //https://habitica.com/api/v3/tasks/user
 
-      var priorities = new Dictionary<string, string>();
-      priorities["Trivial"] = "0.1";
-      priorities["Easy"] = "1";
-      priorities["Medium"] = "1.5";
-      priorities["Hard"] = "2";
-
-
-      var tags = await GetCreateTags(tasks.SelectMany(t => t.Tags).Distinct().ToList());
-
-      var settings = new JsonSerializerSettings()
+      var results = await _client.GetAsync("https://habitica.com/api/v3/tasks/user?type=todos");
+      if (results.IsSuccessStatusCode)
       {
-        ContractResolver = new DefaultContractResolver { NamingStrategy = new CamelCaseNamingStrategy() },
-        Formatting = Formatting.Indented
-      };
+        var tagResult = await _client.GetAsync("https://habitica.com/api/v3/tags");
 
-      foreach (var task in tasks)
-      {
-        for (var x = 0; x < task.Iterations; ++x)
+        if (tagResult.IsSuccessStatusCode)
         {
-          var updatedTask = new
-          {
-            text = task.Text,
-            date = task.Date,
-            priority = priorities[task.Priority],
-            type = task.Type,
-            tags = task.Tags.Select(t => tags[t]).ToArray()
-          };
 
-          var taskJson = JsonConvert.SerializeObject(updatedTask, settings);
+          var foundTag = JObject.Parse(await tagResult.Content.ReadAsStringAsync())["data"].First(t => t["name"].ToString() == _tag);
+          var tagId = foundTag["id"].ToString();
 
-          var content = new StringContent(taskJson, Encoding.UTF8, "application/json");
-          var response = await _client.PostAsync("https://habitica.com/api/v3/tasks/user", content);
-          if (response.IsSuccessStatusCode)
+          var json = await results.Content.ReadAsStringAsync();
+          var readJson = JObject.Parse(json);
+          var coll = (JArray)readJson["data"];
+          foreach (var item in coll)
           {
-            Console.WriteLine($"Created Task: {task.Text}");
-            if (task.Subtasks != null && task.Subtasks.Count() > 0)
+            if (item["tags"].Any(t => t.ToString() == tagId))
             {
-              var result = JObject.Parse(await response.Content.ReadAsStringAsync());
-              var taskid = result["data"]["id"].ToString();
-
-              foreach (var subtask in task.Subtasks)
+              var delResult = await _client.DeleteAsync($"https://habitica.com/api/v3/tasks/{item["id"]}");
+              if (delResult.IsSuccessStatusCode)
               {
-                await CreateSubTask(subtask, taskid);
+                Console.WriteLine("Deleted Task");
               }
             }
           }
-          else
-          {
-            Console.WriteLine("Failed to Create Task");
-          }
         }
       }
-
     }
 
     private async Task CreateSubTask(string subtask, string taskid)
